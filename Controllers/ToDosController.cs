@@ -6,9 +6,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ToDoAPI.Models;
-
+using Microsoft.AspNetCore.Cors;
 namespace ToDoAPI.Controllers
 {
+    [EnableCors]
     [Route("api/[controller]")]
     [ApiController]
     public class ToDosController : ControllerBase
@@ -24,14 +25,50 @@ namespace ToDoAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ToDo>>> GetToDos()
         {
-            return await _context.ToDos.ToListAsync();
+
+            if (_context.ToDos == null)
+            {
+                return NotFound();
+            }
+            var todos = await _context.ToDos.Include("Category").Select(
+                x => new ToDo()
+                {
+                    ToDoId = x.ToDoId,
+                    Name = x.Name,
+                    Done = x.Done,
+                    CategoryId = x.CategoryId,
+                    Category = x.Category != null ? new Category()
+                    {
+                        CategoryId = x.Category.CategoryId,
+                        CatName = x.Category.CatName,
+                        CatDesc = x.Category.CatDesc
+                    } : null
+                }).ToListAsync();
+            return todos;
         }
 
         // GET: api/ToDos/5
         [HttpGet("{id}")]
         public async Task<ActionResult<ToDo>> GetToDo(int id)
         {
-            var toDo = await _context.ToDos.FindAsync(id);
+            if (_context.ToDos == null)
+            {
+                return NotFound();
+            }
+            var toDo = await _context.ToDos.Where(x => x.ToDoId == id).Select(
+                x => new ToDo()
+                {
+                    ToDoId = x.ToDoId,
+                    Name = x.Name,
+                    Done = x.Done,
+                    CategoryId = x.CategoryId,
+                    Category = x.Category != null ? new Category()
+                    {
+                        CategoryId = x.Category.CategoryId,
+                        CatName = x.Category.CatName,
+                        CatDesc = x.Category.CatDesc
+                    } : null
+                }).FirstOrDefaultAsync();
 
             if (toDo == null)
             {
@@ -77,6 +114,18 @@ namespace ToDoAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ToDo>> PostToDo(ToDo toDo)
         {
+
+            if (_context.ToDos == null)
+            {
+                return Problem("Entity Set 'ToDoContex.ToDos is null");
+            }
+            ToDo newToDo = new ToDo()
+            {
+                Name = toDo.Name,
+                Done = toDo.Done,
+                CategoryId = toDo.CategoryId
+
+            };
             _context.ToDos.Add(toDo);
             await _context.SaveChangesAsync();
 
