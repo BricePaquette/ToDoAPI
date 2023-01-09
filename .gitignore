@@ -363,4 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Protecting Sensitive Info 
-/UIProjectFolder/appsettings.json
+/ToDoAPI/appsettings.json
+/appsettings.json
